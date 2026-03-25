@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Senior Academy — Plataforma de Treinamento e Gestão</title>
+    <meta name="description" content="Plataforma SaaS para treinamento, padronização operacional e gestão de equipe em residenciais sênior.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/pages.css">
+    <link rel="stylesheet" href="css/tv-mode.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏡</text></svg>">
+</head>
+<body>
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="login-container">
+                <div class="login-card glass">
+                    <div class="login-logo">
+                        <div class="logo-icon">
+                            <span class="material-icons-round">home_health</span>
+                        </div>
+                        <h1>Senior Academy</h1>
+                        <p class="login-subtitle">Treinamento & Gestão</p>
+                    </div>
+                    <form id="login-form" class="login-form">
+                        <div class="form-group">
+                            <label for="login-email">E-mail</label>
+                            <div class="input-icon">
+                                <span class="material-icons-round">email</span>
+                                <input type="email" id="login-email" placeholder="seu@email.com" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">Senha</label>
+                            <div class="input-icon">
+                                <span class="material-icons-round">lock</span>
+                                <input type="password" id="login-password" placeholder="••••••••" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg btn-full">
+                            <span class="material-icons-round">login</span>
+                            Entrar
+                        </button>
+                    </form>
+                    <div class="login-demo">
+                        <p>Acesso rápido (demo):</p>
+                        <div class="demo-buttons">
+                            <button class="btn btn-outline btn-sm" onclick="App.demoLogin('admin')">
+                                <span class="material-icons-round">admin_panel_settings</span> Admin
+                            </button>
+                            <button class="btn btn-outline btn-sm" onclick="App.demoLogin('supervisor')">
+                                <span class="material-icons-round">supervisor_account</span> Supervisor
+                            </button>
+                            <button class="btn btn-outline btn-sm" onclick="App.demoLogin('funcionario')">
+                                <span class="material-icons-round">person</span> Funcionário
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main App -->
+        <div id="main-app" class="screen">
+            <!-- Sidebar -->
+            <aside id="sidebar" class="sidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-logo">
+                        <span class="material-icons-round">home_health</span>
+                        <span class="sidebar-title">Senior Academy</span>
+                    </div>
+                    <button class="sidebar-toggle" onclick="App.toggleSidebar()" title="Recolher menu">
+                        <span class="material-icons-round">chevron_left</span>
+                    </button>
+                </div>
+                <nav class="sidebar-nav" id="sidebar-nav">
+                    <!-- Dynamic menu items -->
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="sidebar-user" id="sidebar-user">
+                        <div class="user-avatar"><span class="material-icons-round">person</span></div>
+                        <div class="user-info">
+                            <span class="user-name" id="user-name">Usuário</span>
+                            <span class="user-role" id="user-role">Cargo</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-ghost btn-sm" onclick="App.logout()">
+                        <span class="material-icons-round">logout</span>
+                        <span>Sair</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Mobile Overlay -->
+            <div id="sidebar-overlay" class="sidebar-overlay" onclick="App.closeMobileSidebar()"></div>
+
+            <!-- Mobile Header -->
+            <div class="mobile-header" id="mobile-header">
+                <button class="mobile-menu-btn" onclick="App.openMobileSidebar()">
+                    <span class="material-icons-round">menu</span>
+                </button>
+                <span class="mobile-header-title">Senior Academy</span>
+                <button class="mobile-menu-btn" onclick="App.navigate('chat')">
+                    <span class="material-icons-round">smart_toy</span>
+                </button>
+            </div>
+
+            <!-- Content -->
+            <main id="content" class="content">
+                <!-- Dynamic content here -->
+            </main>
+
+            <!-- Bottom Navigation (Mobile) -->
+            <nav class="bottom-nav" id="bottom-nav">
+                <button class="bottom-nav-item active" data-page="dashboard" onclick="App.navigate('dashboard')">
+                    <span class="material-icons-round">dashboard</span>
+                    <span>Início</span>
+                </button>
+                <button class="bottom-nav-item" data-page="setores" onclick="App.navigate('setores')">
+                    <span class="material-icons-round">category</span>
+                    <span>POPs</span>
+                </button>
+                <button class="bottom-nav-item" data-page="trilhas" onclick="App.navigate('trilhas')">
+                    <span class="material-icons-round">school</span>
+                    <span>Trilhas</span>
+                </button>
+                <button class="bottom-nav-item" data-page="testes" onclick="App.navigate('testes')">
+                    <span class="material-icons-round">quiz</span>
+                    <span>Testes</span>
+                </button>
+                <button class="bottom-nav-item" data-page="chat" onclick="App.navigate('chat')">
+                    <span class="material-icons-round">smart_toy</span>
+                    <span>Chat</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- TV Mode -->
+        <div id="tv-mode-screen" class="screen">
+            <div class="tv-header">
+                <div class="tv-logo">
+                    <span class="material-icons-round">home_health</span>
+                    <span>Senior Academy</span>
+                </div>
+                <div class="tv-clock" id="tv-clock">00:00</div>
+                <button class="btn btn-ghost" onclick="App.exitTvMode()" style="color:white">
+                    <span class="material-icons-round">close</span>
+                </button>
+            </div>
+            <div class="tv-content" id="tv-content">
+                <!-- Dynamic TV slides -->
+            </div>
+            <div class="tv-progress" id="tv-progress"></div>
+        </div>
+
+        <!-- Toast Container -->
+        <div id="toast-container" class="toast-container"></div>
+
+        <!-- Modal Container -->
+        <div id="modal-overlay" class="modal-overlay" onclick="App.closeModal()">
+            <div class="modal-card glass" onclick="event.stopPropagation()">
+                <div class="modal-header" id="modal-header"></div>
+                <div class="modal-body" id="modal-body"></div>
+                <div class="modal-footer" id="modal-footer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/database.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/pops.js"></script>
+    <script src="js/training.js"></script>
+    <script src="js/tests.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/tv-mode.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
