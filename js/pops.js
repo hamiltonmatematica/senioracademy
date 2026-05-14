@@ -87,18 +87,36 @@ const POPs = {
     showPOP(popId) {
         this.currentPOP = popId;
         const pop = DB.getPOP(popId);
-        const sector = DB.getSector(pop.sector);
+        const sector = DB.getSector(pop.sector) || DB.getSectorsAll().find(s => s.id === pop.sector) || { name: pop.sector, color: '#64748b', icon: '📄' };
         const progress = DB.getUserProgress(Auth.currentUser.id);
         const isRead = progress.popsRead.includes(pop.id);
+        const isFav = DB.isFavorite(Auth.currentUser.id, pop.id);
+        DB.addRecent(Auth.currentUser.id, pop.id);
 
         App.renderContent(`
             <div class="pop-detail">
-                <div class="pop-detail-header">
-                    <button class="back-btn" onclick="POPs.showSector('${pop.sector}')">
-                        <span class="material-icons-round">arrow_back</span>
-                    </button>
-                    <div>
-                        <h2>${pop.title}</h2>
+                <div class="pop-detail-header" style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap">
+                    <div style="display:flex;align-items:center;gap:var(--space-3);flex:1;min-width:0">
+                        <button class="back-btn" onclick="POPs.showSector('${pop.sector}')">
+                            <span class="material-icons-round">arrow_back</span>
+                        </button>
+                        <div style="min-width:0">
+                            <h2>${pop.title}</h2>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="btn btn-outline-dark btn-sm" onclick="POPs.toggleFavorite('${pop.id}')" title="Favoritar">
+                            <span class="material-icons-round" style="color:${isFav?'#f59e0b':''}">${isFav?'star':'star_border'}</span>
+                            <span>${isFav?'Favoritado':'Favoritar'}</span>
+                        </button>
+                        <button class="btn btn-outline-dark btn-sm" onclick="POPs.printPOP('${pop.id}')" title="Imprimir">
+                            <span class="material-icons-round">print</span>
+                            <span>Imprimir</span>
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="Presentation.start('${pop.id}')" title="Apresentar">
+                            <span class="material-icons-round">slideshow</span>
+                            <span>Apresentar</span>
+                        </button>
                     </div>
                 </div>
 
@@ -195,7 +213,57 @@ const POPs = {
 
     markAsRead(popId) {
         DB.markPOPRead(Auth.currentUser.id, popId);
-        App.toast('POP marcado como lido!', 'success');
+        App.toast('POP marcado como lido! +10 pontos ⭐', 'success');
         this.showPOP(popId);
+    },
+
+    toggleFavorite(popId) {
+        const isFav = DB.toggleFavorite(Auth.currentUser.id, popId);
+        App.toast(isFav ? 'Adicionado aos favoritos ⭐' : 'Removido dos favoritos', 'info');
+        this.showPOP(popId);
+    },
+
+    printPOP(popId) {
+        const pop = DB.getPOP(popId);
+        const sector = DB.getSector(pop.sector) || DB.getSectorsAll().find(s => s.id === pop.sector) || { name: pop.sector, color: '#2563eb' };
+        const w = window.open('', '_blank');
+        w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>POP: ${pop.title}</title>
+            <style>
+                @page { size: A4; margin: 20mm; }
+                * { box-sizing: border-box; }
+                body { font-family: 'Segoe UI', Roboto, sans-serif; color: #1f2937; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; }
+                .ph { border-bottom: 3px solid ${sector.color}; padding-bottom: 12px; margin-bottom: 20px; }
+                h1 { color: ${sector.color}; margin: 0 0 4px; }
+                .meta { font-size: 12px; color: #6b7280; }
+                .section { margin: 18px 0; }
+                .section h2 { font-size: 16px; color: ${sector.color}; border-left: 4px solid ${sector.color}; padding-left: 10px; }
+                ol.steps li { padding: 8px 0; border-bottom: 1px dashed #e5e7eb; }
+                .check li::before { content: '☐ '; margin-right: 4px; }
+                .risks li { color: #b91c1c; }
+                .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #d1d5db; font-size: 11px; color: #6b7280; display: flex; justify-content: space-between; }
+                .sig-area { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+                .sig { border-top: 1px solid #1f2937; padding-top: 4px; text-align: center; font-size: 11px; }
+                .pbtn { position: fixed; top: 16px; right: 16px; background: ${sector.color}; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+                @media print { .pbtn { display: none; } body { padding: 0; } }
+            </style></head><body>
+            <button class="pbtn" onclick="window.print()">🖨️ Imprimir</button>
+            <div class="ph">
+                <div class="meta">${sector.name} · ${pop.duration||'—'} · ${pop.steps.length} etapas</div>
+                <h1>${pop.title}</h1>
+            </div>
+            <p>${pop.description}</p>
+            ${pop.risks?.length ? `<div class="section"><h2>⚠️ Riscos</h2><ul class="risks">${pop.risks.map(r=>`<li>${r}</li>`).join('')}</ul></div>`:''}
+            <div class="section"><h2>📋 Passo a Passo</h2><ol class="steps">${pop.steps.map(s=>`<li>${s}</li>`).join('')}</ol></div>
+            ${pop.checklist?.length ? `<div class="section"><h2>✅ Checklist</h2><ul class="check">${pop.checklist.map(c=>`<li>${c}</li>`).join('')}</ul></div>`:''}
+            <div class="sig-area">
+                <div class="sig">Funcionário responsável</div>
+                <div class="sig">Supervisor</div>
+            </div>
+            <div class="footer">
+                <span>Senior Academy · Documento controlado</span>
+                <span>Impresso em ${new Date().toLocaleString('pt-BR')}</span>
+            </div>
+        </body></html>`);
+        w.document.close();
     }
 };

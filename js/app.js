@@ -9,6 +9,7 @@ const App = {
     init() {
         DB.init();
         this.applyTheme(localStorage.getItem('sa_theme') || 'light');
+        QuickAccess.bindShortcut();
 
         // Try to restore session
         const user = Auth.restore();
@@ -48,7 +49,27 @@ const App = {
         document.getElementById('user-role').textContent = role?.name || Auth.currentUser.role;
 
         this.buildMenu();
+        this.renderTopbar();
         this.navigate('dashboard');
+        Engagement.maybeStartTour();
+    },
+
+    renderTopbar() {
+        const topbar = document.getElementById('topbar');
+        if (!topbar) return;
+        topbar.innerHTML = `
+            <button class="topbar-search-trigger" onclick="QuickAccess.openSearch()">
+                <span class="material-icons-round">search</span>
+                <span class="topbar-search-text">Buscar POPs, testes, comandos...</span>
+                <kbd>⌘K</kbd>
+            </button>
+            <div class="topbar-actions">
+                <div id="topbar-bell-wrap">${Engagement.renderBell()}</div>
+                <button class="topbar-icon-btn" onclick="App.toggleTheme()" title="Alternar tema">
+                    <span class="material-icons-round">contrast</span>
+                </button>
+            </div>
+        `;
     },
 
     // ===== LOGOUT =====
@@ -84,11 +105,15 @@ const App = {
         let menuItems = [
             { section: 'Principal', items: [
                 { id: 'dashboard', icon: 'dashboard', label: 'Dashboard', show: perms.dashboard },
+                { id: 'plantao', icon: 'medical_services', label: 'Modo Plantão', show: true },
+                { id: 'avisos', icon: 'campaign', label: 'Avisos', show: true, badge: DB.getAnnouncements().filter(a=>!a.readBy.includes(Auth.currentUser.id)).length || null },
             ]},
             { section: 'Treinamento', items: [
                 { id: 'setores', icon: 'category', label: 'Setores & POPs', show: perms.pops },
                 { id: 'trilhas', icon: 'school', label: 'Trilhas', show: perms.training },
                 { id: 'testes', icon: 'quiz', label: 'Testes', show: perms.tests },
+                { id: 'conquistas', icon: 'emoji_events', label: 'Conquistas', show: true },
+                { id: 'agenda', icon: 'event', label: 'Agenda', show: true },
             ]},
             { section: 'Gestão', items: [
                 { id: 'usuarios', icon: 'group', label: 'Usuários', show: perms.users },
@@ -101,6 +126,7 @@ const App = {
                 { id: 'comercial', icon: 'storefront', label: 'Comercial', show: perms.commercial },
                 { id: 'chat', icon: 'smart_toy', label: 'Chat IA', show: perms.chat },
                 { id: 'tv', icon: 'tv', label: 'Modo TV', show: perms.tv },
+                { id: 'sobre', icon: 'info', label: 'Sobre a Plataforma', show: true },
             ]}
         ];
 
@@ -114,6 +140,7 @@ const App = {
                         <a href="#" data-page="${item.id}" onclick="App.navigate('${item.id}'); event.preventDefault();">
                             <span class="material-icons-round">${item.icon}</span>
                             <span class="nav-label">${item.label}</span>
+                            ${item.badge ? `<span class="nav-badge">${item.badge}</span>` : ''}
                         </a>
                     `).join('')}
                 </div>
@@ -170,6 +197,11 @@ const App = {
             case 'chat': return Chat.renderChat();
             case 'admin': return Admin.render();
             case 'analytics': return Analytics.render();
+            case 'plantao': return QuickAccess.renderEmergency();
+            case 'avisos': return Engagement.renderAnnouncementsPage();
+            case 'conquistas': return Engagement.renderAchievements();
+            case 'agenda': return Engagement.renderCalendar();
+            case 'sobre': return Engagement.renderAbout();
             default: return '<div class="empty-state"><span class="material-icons-round">construction</span><h3>Em construção</h3></div>';
         }
     },
@@ -353,6 +385,9 @@ const App = {
         const trail = trainings.find(t => t.role === user.role);
         const progress = DB.getUserProgress(user.id);
         const results = DB.getTestResults().filter(r => r.userId === user.id);
+        const points = DB.getPoints(user.id);
+        const announcements = DB.getAnnouncements();
+        const unreadAnn = announcements.filter(a => !a.readBy.includes(user.id));
 
         let popsRead = 0, totalPops = 0, testsPassed = 0, totalTests = 0, overallPct = 0;
         if (trail) {
@@ -367,9 +402,23 @@ const App = {
             <div class="page-header">
                 <div>
                     <h2>👋 Olá, ${user.name.split(' ')[0]}!</h2>
-                    <p>Seu painel de treinamento</p>
+                    <p>Seu painel de treinamento e consulta diária</p>
+                </div>
+                <div class="page-actions">
+                    <span class="points-pill"><span class="material-icons-round">stars</span> ${points} pontos</span>
                 </div>
             </div>
+
+            ${unreadAnn.length > 0 ? `
+                <div class="hero-announcement" onclick="App.navigate('avisos')">
+                    <span class="material-icons-round" style="font-size:28px">campaign</span>
+                    <div style="flex:1">
+                        <strong>${unreadAnn.length} comunicado(s) novo(s)</strong>
+                        <p style="font-size:0.85rem;opacity:0.95;margin-top:2px">${unreadAnn[0].title}</p>
+                    </div>
+                    <span class="material-icons-round">arrow_forward</span>
+                </div>
+            ` : ''}
 
             <div class="stat-grid">
                 <div class="stat-card">
@@ -459,6 +508,22 @@ const App = {
                     <p>Fale com seu supervisor para ser incluído em uma trilha de treinamento.</p>
                 </div>
             `}
+
+            <div class="dashboard-grid" style="margin-top:var(--space-8)">
+                ${QuickAccess.renderFavoritesWidget(user.id) || '<div></div>'}
+                ${QuickAccess.renderRecentsWidget(user.id) || '<div></div>'}
+            </div>
+
+            <div class="card" style="margin-top:var(--space-6);background:linear-gradient(135deg,#fef2f2,#fee2e2);border-color:#fecaca" onclick="App.navigate('plantao')">
+                <div class="card-body" style="display:flex;align-items:center;gap:var(--space-4);cursor:pointer">
+                    <span class="material-icons-round" style="font-size:40px;color:var(--danger)">medical_services</span>
+                    <div style="flex:1">
+                        <h3 style="color:var(--danger);font-size:1.1rem">🚨 Modo Plantão</h3>
+                        <p style="font-size:0.85rem;color:#7f1d1d">Acesso rápido a procedimentos críticos de emergência</p>
+                    </div>
+                    <span class="material-icons-round" style="color:var(--danger)">arrow_forward</span>
+                </div>
+            </div>
         `;
     },
 

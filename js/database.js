@@ -539,6 +539,185 @@ const DB = {
         this.set('units', units);
     },
 
+    // ===== FAVORITES =====
+    getFavorites(userId) {
+        const all = this.get('favorites') || {};
+        return all[userId] || [];
+    },
+    toggleFavorite(userId, popId) {
+        const all = this.get('favorites') || {};
+        const list = all[userId] || [];
+        const i = list.indexOf(popId);
+        if (i >= 0) list.splice(i, 1); else list.unshift(popId);
+        all[userId] = list;
+        this.set('favorites', all);
+        return i < 0;
+    },
+    isFavorite(userId, popId) {
+        return this.getFavorites(userId).includes(popId);
+    },
+
+    // ===== RECENTS =====
+    addRecent(userId, popId) {
+        const all = this.get('recents') || {};
+        const list = (all[userId] || []).filter(id => id !== popId);
+        list.unshift(popId);
+        all[userId] = list.slice(0, 12);
+        this.set('recents', all);
+    },
+    getRecents(userId) {
+        const all = this.get('recents') || {};
+        return all[userId] || [];
+    },
+
+    // ===== ANNOUNCEMENTS =====
+    getAnnouncements() {
+        return (this.get('announcements') || []).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+    },
+    addAnnouncement(a) {
+        const list = this.get('announcements') || [];
+        a.id = 'ann_' + Date.now();
+        a.createdAt = new Date().toISOString();
+        a.readBy = [];
+        list.push(a);
+        this.set('announcements', list);
+        // Notification to all users
+        this.broadcastNotification({
+            title: 'Novo comunicado',
+            body: a.title,
+            type: 'announcement',
+            ref: a.id
+        });
+        return a;
+    },
+    deleteAnnouncement(id) {
+        this.set('announcements', this.getAnnouncements().filter(a => a.id !== id));
+    },
+    markAnnouncementRead(userId, id) {
+        const list = this.getAnnouncements();
+        const a = list.find(x => x.id === id);
+        if (a && !a.readBy.includes(userId)) {
+            a.readBy.push(userId);
+            this.set('announcements', list);
+        }
+    },
+
+    // ===== NOTIFICATIONS =====
+    getNotifications(userId) {
+        const all = this.get('notifications') || {};
+        return all[userId] || [];
+    },
+    addNotification(userId, n) {
+        const all = this.get('notifications') || {};
+        const list = all[userId] || [];
+        n.id = 'n_' + Date.now() + Math.random().toString(36).slice(2,5);
+        n.createdAt = new Date().toISOString();
+        n.read = false;
+        list.unshift(n);
+        all[userId] = list.slice(0, 50);
+        this.set('notifications', all);
+    },
+    broadcastNotification(n) {
+        this.getUsers().forEach(u => this.addNotification(u.id, { ...n }));
+    },
+    markNotificationRead(userId, id) {
+        const all = this.get('notifications') || {};
+        const list = all[userId] || [];
+        const n = list.find(x => x.id === id);
+        if (n) { n.read = true; this.set('notifications', all); }
+    },
+    markAllNotificationsRead(userId) {
+        const all = this.get('notifications') || {};
+        (all[userId] || []).forEach(n => n.read = true);
+        this.set('notifications', all);
+    },
+    countUnreadNotifications(userId) {
+        return this.getNotifications(userId).filter(n => !n.read).length;
+    },
+
+    // ===== GAMIFICATION =====
+    getPoints(userId) {
+        const all = this.get('points') || {};
+        return all[userId] || 0;
+    },
+    addPoints(userId, pts, reason) {
+        const all = this.get('points') || {};
+        all[userId] = (all[userId] || 0) + pts;
+        this.set('points', all);
+        const log = this.get('points_log') || [];
+        log.push({ userId, pts, reason, at: new Date().toISOString() });
+        this.set('points_log', log.slice(-200));
+    },
+    getBadges(userId) {
+        const all = this.get('badges') || {};
+        return all[userId] || [];
+    },
+    grantBadge(userId, badgeId) {
+        const all = this.get('badges') || {};
+        const list = all[userId] || [];
+        if (list.find(b => b.id === badgeId)) return false;
+        const def = this.BADGE_DEFS.find(b => b.id === badgeId);
+        if (!def) return false;
+        list.push({ id: badgeId, at: new Date().toISOString() });
+        all[userId] = list;
+        this.set('badges', all);
+        this.addNotification(userId, { title: 'Nova conquista!', body: `${def.icon} ${def.name}`, type: 'badge' });
+        return true;
+    },
+    BADGE_DEFS: [
+        { id: 'first_pop', name: 'Primeiros Passos', icon: '🌱', desc: 'Leu seu primeiro POP', pts: 10 },
+        { id: 'first_test', name: 'Estudante', icon: '📚', desc: 'Concluiu seu primeiro teste', pts: 20 },
+        { id: 'perfect_score', name: 'Excelência', icon: '⭐', desc: 'Tirou 100% em um teste', pts: 50 },
+        { id: 'streak_5', name: 'Dedicação', icon: '🔥', desc: 'Leu 5 POPs', pts: 30 },
+        { id: 'streak_10', name: 'Maratonista', icon: '🏃', desc: 'Leu 10 POPs', pts: 60 },
+        { id: 'all_pops', name: 'Mestre dos Procedimentos', icon: '🎓', desc: 'Leu todos os POPs da trilha', pts: 100 },
+        { id: 'all_tests', name: 'Aprovado em Tudo', icon: '🏆', desc: 'Passou em todos os testes da trilha', pts: 100 },
+        { id: 'certified', name: 'Certificado', icon: '🥇', desc: 'Trilha completa', pts: 200 }
+    ],
+
+    checkAchievements(userId) {
+        const progress = this.getUserProgress(userId);
+        const results = this.getTestResults().filter(r => r.userId === userId);
+        const granted = [];
+        if (progress.popsRead.length >= 1) granted.push(this.grantBadge(userId, 'first_pop') && 'first_pop');
+        if (progress.testsCompleted.length >= 1) granted.push(this.grantBadge(userId, 'first_test') && 'first_test');
+        if (results.some(r => r.percentage === 100)) granted.push(this.grantBadge(userId, 'perfect_score') && 'perfect_score');
+        if (progress.popsRead.length >= 5) granted.push(this.grantBadge(userId, 'streak_5') && 'streak_5');
+        if (progress.popsRead.length >= 10) granted.push(this.grantBadge(userId, 'streak_10') && 'streak_10');
+        const user = this.getUser(userId);
+        const trail = this.getTrainings().find(t => t.role === user?.role);
+        if (trail) {
+            const allPops = trail.pops.every(p => progress.popsRead.includes(p));
+            const allTests = trail.tests.every(t => progress.testsCompleted.includes(t));
+            if (allPops) granted.push(this.grantBadge(userId, 'all_pops') && 'all_pops');
+            if (allTests) granted.push(this.grantBadge(userId, 'all_tests') && 'all_tests');
+            if (allPops && allTests) granted.push(this.grantBadge(userId, 'certified') && 'certified');
+        }
+        return granted.filter(Boolean);
+    },
+
+    // ===== TRAINING EVENTS (calendar) =====
+    getEvents() { return this.get('events') || []; },
+    addEvent(e) {
+        const list = this.getEvents();
+        e.id = 'evt_' + Date.now();
+        list.push(e);
+        this.set('events', list);
+        this.broadcastNotification({ title: 'Novo treinamento agendado', body: `${e.title} — ${new Date(e.date).toLocaleDateString('pt-BR')}`, type: 'event' });
+        return e;
+    },
+    deleteEvent(id) { this.set('events', this.getEvents().filter(e => e.id !== id)); },
+
+    // ===== EMERGENCY POPs flag =====
+    setEmergencyPOPs(ids) { this.set('emergency_pops', ids); },
+    getEmergencyPOPs() {
+        const ids = this.get('emergency_pops');
+        if (ids) return ids;
+        // Default: critical POPs by title
+        const pops = this.getPOPs();
+        return pops.filter(p => /queda|engasgo|medicament|sinais vitais|escara/i.test(p.title)).map(p => p.id);
+    },
+
     // ===== HELPERS =====
     getUsers() { return this.get('users') || []; },
     getPOPs() { return this.get('pops') || []; },
@@ -571,6 +750,7 @@ const DB = {
     // Save test result
     addTestResult(userId, testId, score, total, passed) {
         const results = this.getTestResults();
+        const percentage = Math.round((score / total) * 100);
         results.push({
             id: 'tr_' + Date.now(),
             userId,
@@ -578,13 +758,17 @@ const DB = {
             score,
             total,
             passed,
-            percentage: Math.round((score / total) * 100),
+            percentage,
             timestamp: new Date().toISOString()
         });
         this.set('test_results', results);
 
         // Legal record
         this.addLegalRecord(userId, 'teste', `Teste "${this.getTest(testId)?.title}" — Nota: ${score}/${total} (${passed ? 'Aprovado' : 'Reprovado'})`);
+        if (passed) {
+            this.addPoints(userId, percentage === 100 ? 50 : 25, 'Teste aprovado');
+            this.checkAchievements(userId);
+        }
     },
 
     // Save chat log
@@ -608,6 +792,8 @@ const DB = {
             progress[userId].popsRead.push(popId);
             this.set('training_progress', progress);
             this.addLegalRecord(userId, 'treinamento', `POP lido: "${this.getPOP(popId)?.title}"`);
+            this.addPoints(userId, 10, 'POP lido');
+            this.checkAchievements(userId);
         }
     },
 

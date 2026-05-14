@@ -113,15 +113,20 @@
                     <span class="material-icons-round">menu</span>
                 </button>
                 <span class="mobile-header-title">Senior Academy</span>
-                <button class="mobile-menu-btn" onclick="App.navigate('chat')">
-                    <span class="material-icons-round">smart_toy</span>
+                <button class="mobile-menu-btn" onclick="QuickAccess.openSearch()">
+                    <span class="material-icons-round">search</span>
                 </button>
             </div>
 
-            <!-- Content -->
-            <main id="content" class="content">
-                <!-- Dynamic content here -->
-            </main>
+            <!-- Content wrapper -->
+            <div class="content-wrapper">
+                <!-- Desktop Topbar -->
+                <div class="topbar" id="topbar"></div>
+                <!-- Content -->
+                <main id="content" class="content">
+                    <!-- Dynamic content here -->
+                </main>
+            </div>
 
             <!-- Bottom Navigation (Mobile) -->
             <nav class="bottom-nav" id="bottom-nav">
@@ -189,6 +194,9 @@
     <script src="js/admin.js"></script>
     <script src="js/analytics.js"></script>
     <script src="js/certificate.js"></script>
+    <script src="js/quickaccess.js"></script>
+    <script src="js/engagement.js"></script>
+    <script src="js/presentation.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
