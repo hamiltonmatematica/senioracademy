@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/pages.css">
     <link rel="stylesheet" href="css/tv-mode.css">
+    <link rel="stylesheet" href="css/theme.css">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏡</text></svg>">
 </head>
 <body>
@@ -90,10 +91,16 @@
                             <span class="user-role" id="user-role">Cargo</span>
                         </div>
                     </div>
-                    <button class="btn btn-ghost btn-sm" onclick="App.logout()">
-                        <span class="material-icons-round">logout</span>
-                        <span>Sair</span>
-                    </button>
+                    <div style="display:flex;gap:6px">
+                        <button class="btn btn-ghost btn-sm" onclick="App.toggleTheme()" title="Alternar tema" style="flex:1">
+                            <span class="material-icons-round">contrast</span>
+                            <span class="nav-label">Tema</span>
+                        </button>
+                        <button class="btn btn-ghost btn-sm" onclick="App.logout()" title="Sair" style="flex:1">
+                            <span class="material-icons-round">logout</span>
+                            <span class="nav-label">Sair</span>
+                        </button>
+                    </div>
                 </div>
             </aside>
 
@@ -179,6 +186,9 @@
     <script src="js/tests.js"></script>
     <script src="js/chat.js"></script>
     <script src="js/tv-mode.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/certificate.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

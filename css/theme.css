@@ -1,0 +1,185 @@
+/* ========================================
+   THEME — Dark mode + refinements
+   ======================================== */
+
+:root[data-theme="dark"] {
+    --bg: #0b1220;
+    --bg-card: #131c2e;
+    --bg-sidebar: #060912;
+    --bg-sidebar-hover: #1a2540;
+    --bg-sidebar-active: rgba(37, 99, 235, 0.28);
+
+    --text: #e6edf7;
+    --text-secondary: #a4b0c4;
+    --text-muted: #6b7896;
+    --text-inverse: #0b1220;
+
+    --border: #25334d;
+    --border-light: #1a2540;
+
+    --primary-50: rgba(59, 130, 246, 0.12);
+    --primary-100: rgba(59, 130, 246, 0.2);
+    --success-bg: rgba(16, 185, 129, 0.18);
+    --warning-bg: rgba(245, 158, 11, 0.18);
+    --danger-bg: rgba(239, 68, 68, 0.18);
+    --info-bg: rgba(99, 102, 241, 0.18);
+
+    --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.5);
+    --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.55);
+}
+
+:root[data-theme="dark"] body { background: var(--bg); color: var(--text); }
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .stat-card,
+:root[data-theme="dark"] .pop-card,
+:root[data-theme="dark"] .sector-card,
+:root[data-theme="dark"] .franchise-card,
+:root[data-theme="dark"] .script-card,
+:root[data-theme="dark"] .table-container,
+:root[data-theme="dark"] .modal-card {
+    background: var(--bg-card);
+    border-color: var(--border);
+    color: var(--text);
+}
+:root[data-theme="dark"] .glass {
+    background: rgba(19, 28, 46, 0.85);
+    backdrop-filter: blur(20px);
+    border-color: var(--border);
+}
+:root[data-theme="dark"] .form-control,
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select {
+    background: var(--bg);
+    color: var(--text);
+    border-color: var(--border);
+}
+:root[data-theme="dark"] .form-control::placeholder { color: var(--text-muted); }
+:root[data-theme="dark"] th { background: var(--bg-sidebar-hover); color: var(--text-secondary); }
+:root[data-theme="dark"] table tbody tr:hover { background: var(--bg-sidebar-hover); }
+:root[data-theme="dark"] .btn-outline,
+:root[data-theme="dark"] .btn-outline-dark { color: var(--text); border-color: var(--border); }
+:root[data-theme="dark"] .btn-outline-dark:hover { background: var(--bg-sidebar-hover); }
+:root[data-theme="dark"] .filter-chip { background: var(--bg-card); color: var(--text-secondary); border-color: var(--border); }
+:root[data-theme="dark"] .filter-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+:root[data-theme="dark"] .pop-step { background: var(--bg-card); }
+:root[data-theme="dark"] .pop-step-text { color: var(--text); }
+:root[data-theme="dark"] .checklist li { color: var(--text); border-bottom-color: var(--border-light); }
+:root[data-theme="dark"] .tabs { border-bottom-color: var(--border); }
+:root[data-theme="dark"] .tab { color: var(--text-secondary); }
+:root[data-theme="dark"] .tab.active { color: var(--primary-light); }
+:root[data-theme="dark"] .mobile-header { background: var(--bg-card); border-bottom: 1px solid var(--border); color: var(--text); }
+:root[data-theme="dark"] .bottom-nav { background: var(--bg-card); border-top: 1px solid var(--border); }
+:root[data-theme="dark"] .bottom-nav-item { color: var(--text-muted); }
+:root[data-theme="dark"] .bottom-nav-item.active { color: var(--primary-light); }
+:root[data-theme="dark"] .toast { background: var(--bg-card); border-color: var(--border); color: var(--text); }
+:root[data-theme="dark"] .login-card { background: rgba(19, 28, 46, 0.9); }
+:root[data-theme="dark"] .progress-bar { background: var(--border-light); }
+:root[data-theme="dark"] .pop-detail-header h2,
+:root[data-theme="dark"] .page-header h2,
+:root[data-theme="dark"] .card-header h3,
+:root[data-theme="dark"] .card h3,
+:root[data-theme="dark"] .card h4 { color: var(--text); }
+
+/* ====== POLISH (light + dark) ====== */
+
+/* Smooth theme transitions */
+body, .card, .stat-card, .pop-card, .sector-card, .form-control,
+.modal-card, .table-container, table tbody tr, .tabs .tab {
+    transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+/* Card hover lift */
+.card-clickable { transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
+.card-clickable:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
+
+/* Stat card subtle gradient overlay */
+.stat-card { position: relative; overflow: hidden; }
+.stat-card::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 60%, rgba(37,99,235,0.04));
+    pointer-events: none;
+}
+
+/* Progress bar shimmer when full */
+.progress-fill.green { background: linear-gradient(90deg, var(--success), #34d399); }
+.progress-fill.red { background: var(--danger); }
+.progress-fill {
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+}
+
+/* Badges with subtle shadow */
+.badge { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05); }
+
+/* Tabs underline animation */
+.tabs .tab { position: relative; transition: color 0.2s ease; }
+.tabs .tab::after {
+    content: ''; position: absolute; bottom: 0; left: 50%;
+    width: 0; height: 3px; background: var(--primary);
+    transition: all 0.25s ease; transform: translateX(-50%);
+    border-radius: 3px 3px 0 0;
+}
+.tabs .tab.active::after { width: 100%; }
+
+/* Toast animation */
+.toast { animation: toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes toastIn { from { transform: translateY(-12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* Modal entrance */
+.modal-overlay.active .modal-card { animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes modalIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* Activity item refinement */
+.activity-item:hover { background: var(--primary-50); }
+
+/* Quiz option focus */
+.quiz-option { transition: all 0.18s ease; }
+.quiz-option:hover { border-color: var(--primary); transform: translateX(2px); }
+
+/* Sector card vivid hover */
+.sector-card { transition: transform 0.2s ease, box-shadow 0.2s ease; cursor: pointer; }
+.sector-card:hover { transform: translateY(-4px) scale(1.02); box-shadow: var(--shadow-xl); }
+
+/* Better focus states */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-50); }
+
+/* Empty state polish */
+.empty-state {
+    text-align: center; padding: var(--space-12) var(--space-6);
+    color: var(--text-muted);
+}
+.empty-state span.material-icons-round {
+    font-size: 64px; opacity: 0.4; margin-bottom: var(--space-3); display: block;
+    color: var(--primary);
+}
+
+/* Loading skeleton (utility) */
+.skeleton {
+    background: linear-gradient(90deg, var(--border-light) 0%, var(--border) 50%, var(--border-light) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: var(--radius-sm);
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* Pulse on important CTAs */
+.btn-primary.pulse {
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.4); }
+    50% { box-shadow: 0 0 0 10px rgba(37,99,235,0); }
+}
+
+/* Print styles for legal/analytics export */
+@media print {
+    .sidebar, .mobile-header, .bottom-nav, .page-actions, .btn { display: none !important; }
+    .content { margin-left: 0 !important; padding: 0 !important; }
+    .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+}

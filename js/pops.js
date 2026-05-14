@@ -128,6 +128,33 @@ const POPs = {
                     </div>
                 ` : ''}
 
+                ${(pop.attachments && pop.attachments.length) ? `
+                    <div class="pop-section">
+                        <h3><span class="material-icons-round">attach_file</span> Anexos</h3>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:var(--space-3)">
+                            ${pop.attachments.map(a => {
+                                const isImg = a.type?.startsWith('image');
+                                const isVid = a.type?.startsWith('video');
+                                return `
+                                    <a href="${a.data}" target="_blank" download="${a.name}" style="display:flex;flex-direction:column;align-items:center;padding:var(--space-3);background:var(--bg);border-radius:var(--radius);text-decoration:none;color:inherit;border:1px solid var(--border-light);transition:var(--transition)">
+                                        ${isImg ? `<img src="${a.data}" style="width:100%;height:80px;object-fit:cover;border-radius:6px;margin-bottom:6px">` :
+                                          isVid ? `<span class="material-icons-round" style="font-size:48px;color:var(--primary)">movie</span>` :
+                                          `<span class="material-icons-round" style="font-size:48px;color:var(--danger)">picture_as_pdf</span>`}
+                                        <span style="font-size:0.75rem;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;margin-top:6px">${a.name}</span>
+                                    </a>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${pop.videoUrl ? `
+                    <div class="pop-section">
+                        <h3><span class="material-icons-round">play_circle</span> Vídeo</h3>
+                        <a href="${pop.videoUrl}" target="_blank" class="btn btn-outline-dark"><span class="material-icons-round">open_in_new</span> Abrir vídeo</a>
+                    </div>
+                ` : ''}
+
                 <div class="pop-section">
                     <h3><span class="material-icons-round">format_list_numbered</span> Passo a Passo</h3>
                     ${pop.steps.map((step, i) => `

@@ -16,16 +16,44 @@ const DB = {
         localStorage.removeItem(`sa_${key}`);
     },
 
-    // ===== INITIALIZATION =====
+    // ===== SCHEMA VERSION =====
+    SCHEMA_VERSION: 2,
+
+    // ===== INITIALIZATION (non-destructive) =====
     init() {
+        // First-run: full seed
         if (!this.get('initialized')) {
             this.seedUsers();
             this.seedPOPs();
             this.seedTests();
             this.seedTrainings();
             this.seedUnits();
+            this.set('schema_version', this.SCHEMA_VERSION);
             this.set('initialized', true);
+            return;
         }
+        // Subsequent runs: backfill new entities (preserves user data)
+        if (!this.get('users')) this.seedUsers();
+        if (!this.get('pops')) this.seedPOPs();
+        if (!this.get('tests')) this.seedTests();
+        if (!this.get('trainings')) this.seedTrainings();
+        if (!this.get('units')) this.seedUnits();
+        this.runMigrations();
+    },
+
+    runMigrations() {
+        const current = this.get('schema_version') || 1;
+        if (current < 2) {
+            // v2: ensure every POP has attachments[] and tags[]; tests have attempts limit
+            const pops = this.getPOPs().map(p => ({
+                attachments: [], tags: [], videoUrl: p.videoUrl || '',
+                ...p
+            }));
+            this.set('pops', pops);
+            const tests = this.getTests().map(t => ({ maxAttempts: 3, passingScore: 70, ...t }));
+            this.set('tests', tests);
+        }
+        this.set('schema_version', this.SCHEMA_VERSION);
     },
 
     // ===== SECTORS =====
@@ -626,5 +654,195 @@ const DB = {
     deleteUser(userId) {
         const users = this.getUsers().filter(u => u.id !== userId);
         this.set('users', users);
+    },
+
+    // ===== POP CRUD =====
+    addPOP(pop) {
+        const pops = this.getPOPs();
+        pop.id = pop.id || 'pop_' + Date.now();
+        pop.attachments = pop.attachments || [];
+        pop.tags = pop.tags || [];
+        pop.checklist = pop.checklist || [];
+        pop.risks = pop.risks || [];
+        pop.steps = pop.steps || [];
+        pop.createdAt = new Date().toISOString();
+        pops.push(pop);
+        this.set('pops', pops);
+        return pop;
+    },
+    updatePOP(id, updates) {
+        const pops = this.getPOPs();
+        const i = pops.findIndex(p => p.id === id);
+        if (i !== -1) {
+            pops[i] = { ...pops[i], ...updates, updatedAt: new Date().toISOString() };
+            this.set('pops', pops);
+        }
+    },
+    deletePOP(id) {
+        this.set('pops', this.getPOPs().filter(p => p.id !== id));
+        // Clean linked references in trainings
+        const trainings = this.getTrainings().map(t => ({ ...t, pops: t.pops.filter(p => p !== id) }));
+        this.set('trainings', trainings);
+    },
+    duplicatePOP(id) {
+        const pop = this.getPOP(id);
+        if (!pop) return null;
+        const copy = JSON.parse(JSON.stringify(pop));
+        copy.id = 'pop_' + Date.now();
+        copy.title = pop.title + ' (cópia)';
+        return this.addPOP(copy);
+    },
+
+    // ===== TEST CRUD =====
+    addTest(test) {
+        const tests = this.getTests();
+        test.id = test.id || 'test_' + Date.now();
+        test.maxAttempts = test.maxAttempts ?? 3;
+        test.passingScore = test.passingScore ?? 70;
+        test.questions = test.questions || [];
+        tests.push(test);
+        this.set('tests', tests);
+        return test;
+    },
+    updateTest(id, updates) {
+        const tests = this.getTests();
+        const i = tests.findIndex(t => t.id === id);
+        if (i !== -1) {
+            tests[i] = { ...tests[i], ...updates };
+            this.set('tests', tests);
+        }
+    },
+    deleteTest(id) {
+        this.set('tests', this.getTests().filter(t => t.id !== id));
+        const trainings = this.getTrainings().map(t => ({ ...t, tests: t.tests.filter(x => x !== id) }));
+        this.set('trainings', trainings);
+    },
+
+    // ===== TRAINING/TRILHA CRUD =====
+    addTraining(trail) {
+        const trails = this.getTrainings();
+        trail.id = trail.id || 'trail_' + Date.now();
+        trail.pops = trail.pops || [];
+        trail.tests = trail.tests || [];
+        trails.push(trail);
+        this.set('trainings', trails);
+        return trail;
+    },
+    updateTraining(id, updates) {
+        const trails = this.getTrainings();
+        const i = trails.findIndex(t => t.id === id);
+        if (i !== -1) {
+            trails[i] = { ...trails[i], ...updates };
+            this.set('trainings', trails);
+        }
+    },
+    deleteTraining(id) {
+        this.set('trainings', this.getTrainings().filter(t => t.id !== id));
+    },
+
+    // ===== SECTORS (persisted overrides) =====
+    getSectorsAll() {
+        const overrides = this.get('sectors_custom') || [];
+        return [...this.sectors, ...overrides];
+    },
+    addSector(s) {
+        const custom = this.get('sectors_custom') || [];
+        s.id = s.id || 'sec_' + Date.now();
+        s.icon = s.icon || '🏷️';
+        s.color = s.color || '#64748b';
+        s.materialIcon = s.materialIcon || 'label';
+        custom.push(s);
+        this.set('sectors_custom', custom);
+        return s;
+    },
+
+    // ===== TEST ATTEMPTS =====
+    countTestAttempts(userId, testId) {
+        return this.getTestResults().filter(r => r.userId === userId && r.testId === testId).length;
+    },
+
+    // ===== EXPORT / IMPORT =====
+    exportAll() {
+        return {
+            meta: {
+                app: 'Senior Academy',
+                exportedAt: new Date().toISOString(),
+                schemaVersion: this.SCHEMA_VERSION
+            },
+            users: this.getUsers(),
+            pops: this.getPOPs(),
+            tests: this.getTests(),
+            trainings: this.getTrainings(),
+            units: this.getUnits(),
+            sectors_custom: this.get('sectors_custom') || [],
+            test_results: this.getTestResults(),
+            training_progress: this.getTrainingProgress(),
+            chat_logs: this.getChatLogs(),
+            legal_records: this.getLegalRecords()
+        };
+    },
+    importAll(data, mode = 'merge') {
+        if (!data || !data.meta) throw new Error('Arquivo inválido');
+        const keys = ['users','pops','tests','trainings','units','sectors_custom','test_results','training_progress','chat_logs','legal_records'];
+        if (mode === 'replace') {
+            keys.forEach(k => { if (data[k] !== undefined) this.set(k === 'sectors_custom' ? 'sectors_custom' : k, data[k]); });
+        } else {
+            // merge: union by id (data wins on conflict for entities), progress merged by user
+            ['users','pops','tests','trainings','units'].forEach(k => {
+                const current = this.get(k) || [];
+                const incoming = data[k] || [];
+                const map = new Map(current.map(x => [x.id, x]));
+                incoming.forEach(x => map.set(x.id, x));
+                this.set(k, [...map.values()]);
+            });
+            if (data.sectors_custom) {
+                const cur = this.get('sectors_custom') || [];
+                const map = new Map(cur.map(x => [x.id, x]));
+                data.sectors_custom.forEach(x => map.set(x.id, x));
+                this.set('sectors_custom', [...map.values()]);
+            }
+            ['test_results','chat_logs','legal_records'].forEach(k => {
+                const cur = this.get(k) || [];
+                const map = new Map(cur.map(x => [x.id, x]));
+                (data[k] || []).forEach(x => map.set(x.id, x));
+                this.set(k, [...map.values()]);
+            });
+            if (data.training_progress) {
+                const cur = this.getTrainingProgress();
+                Object.keys(data.training_progress).forEach(uid => {
+                    const src = data.training_progress[uid];
+                    const dst = cur[uid] || { popsRead: [], testsCompleted: [] };
+                    dst.popsRead = [...new Set([...(dst.popsRead||[]), ...(src.popsRead||[])])];
+                    dst.testsCompleted = [...new Set([...(dst.testsCompleted||[]), ...(src.testsCompleted||[])])];
+                    cur[uid] = dst;
+                });
+                this.set('training_progress', cur);
+            }
+        }
+        this.runMigrations();
+    },
+    createSnapshot(label = 'manual') {
+        const snaps = this.get('snapshots') || [];
+        snaps.push({
+            id: 'snap_' + Date.now(),
+            label,
+            createdAt: new Date().toISOString(),
+            data: this.exportAll()
+        });
+        // keep last 5
+        while (snaps.length > 5) snaps.shift();
+        this.set('snapshots', snaps);
+    },
+    listSnapshots() { return this.get('snapshots') || []; },
+    restoreSnapshot(id) {
+        const snap = this.listSnapshots().find(s => s.id === id);
+        if (snap) this.importAll(snap.data, 'replace');
+    },
+
+    // ===== RESET (full reseed) =====
+    factoryReset() {
+        this.createSnapshot('pre-reset');
+        ['users','pops','tests','trainings','units','sectors_custom','training_progress','test_results','chat_logs','legal_records','initialized'].forEach(k => this.remove(k));
+        this.init();
     }
 };

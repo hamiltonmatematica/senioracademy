@@ -8,6 +8,7 @@ const App = {
     // ===== INIT =====
     init() {
         DB.init();
+        this.applyTheme(localStorage.getItem('sa_theme') || 'light');
 
         // Try to restore session
         const user = Auth.restore();
@@ -91,6 +92,8 @@ const App = {
             ]},
             { section: 'Gestão', items: [
                 { id: 'usuarios', icon: 'group', label: 'Usuários', show: perms.users },
+                { id: 'analytics', icon: 'insights', label: 'Analytics', show: perms.users },
+                { id: 'admin', icon: 'settings', label: 'Conteúdo & Dados', show: Auth.isAdmin() },
                 { id: 'juridico', icon: 'gavel', label: 'Registro Jurídico', show: perms.legal },
                 { id: 'franquias', icon: 'business', label: 'Franquias', show: perms.franchise },
             ]},
@@ -165,6 +168,8 @@ const App = {
             case 'franquias': return this.renderFranchises();
             case 'comercial': return this.renderCommercial();
             case 'chat': return Chat.renderChat();
+            case 'admin': return Admin.render();
+            case 'analytics': return Analytics.render();
             default: return '<div class="empty-state"><span class="material-icons-round">construction</span><h3>Em construção</h3></div>';
         }
     },
@@ -636,7 +641,8 @@ const App = {
                     `).join('') : '<p style="font-size:0.8rem;color:var(--text-muted)">Nenhum registro</p>'}
                 </div>
             `,
-            '<button class="btn btn-primary" onclick="App.closeModal()">Fechar</button>'
+            `${Certificate.canIssue(userId) ? `<button class="btn btn-outline-dark" onclick="App.issueCertificate('${userId}')"><span class="material-icons-round">workspace_premium</span> Emitir Certificado</button>` : ''}
+             <button class="btn btn-primary" onclick="App.closeModal()">Fechar</button>`
         );
     },
 
@@ -969,6 +975,22 @@ const App = {
         `;
         container.appendChild(toast);
         setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3500);
+    },
+
+    // ===== THEME =====
+    applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('sa_theme', theme);
+    },
+
+    toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme') || 'light';
+        this.applyTheme(current === 'light' ? 'dark' : 'light');
+    },
+
+    // ===== CERTIFICATE shortcut =====
+    issueCertificate(userId) {
+        Certificate.issue(userId);
     },
 
     // ===== TIME AGO =====

@@ -7,7 +7,8 @@ const Auth = {
 
     login(email, password) {
         const users = DB.getUsers();
-        const user = users.find(u => u.email === email && u.password === password);
+        const e = (email || '').trim().toLowerCase();
+        const user = users.find(u => (u.email || '').toLowerCase() === e && u.password === password);
         if (user) {
             this.currentUser = user;
             DB.set('currentUser', user);

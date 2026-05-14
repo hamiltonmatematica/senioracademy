@@ -159,9 +159,18 @@ const Tests = {
     },
 
     startTest(testId) {
-        this.currentTest = DB.getTest(testId);
+        const test = DB.getTest(testId);
+        const userId = Auth.currentUser.id;
+        const maxAttempts = test.maxAttempts || 3;
+        const attempts = DB.countTestAttempts(userId, testId);
+        const passed = DB.getUserProgress(userId).testsCompleted.includes(testId);
+        if (!passed && attempts >= maxAttempts) {
+            App.toast(`Limite de ${maxAttempts} tentativas atingido. Procure seu supervisor.`, 'error');
+            return;
+        }
+        this.currentTest = test;
         this.currentQuestionIndex = 0;
-        this.answers = new Array(this.currentTest.questions.length).fill(-1);
+        this.answers = new Array(test.questions.length).fill(-1);
         this.showingResults = false;
         this.renderQuestion();
     },
@@ -256,7 +265,8 @@ const Tests = {
 
         const total = test.questions.length;
         const percentage = Math.round((score / total) * 100);
-        const passed = percentage >= 70;
+        const minScore = this.currentTest.passingScore || 70;
+        const passed = percentage >= minScore;
 
         DB.addTestResult(Auth.currentUser.id, test.id, score, total, passed);
         if (passed) {
@@ -277,7 +287,7 @@ const Tests = {
                     </span>
                     <h2 style="font-size:1.8rem;margin-top:var(--space-4)">${passed ? 'Parabéns! Você foi aprovado!' : 'Não foi dessa vez...'}</h2>
                     <p style="color:var(--text-secondary);margin-top:var(--space-2)">
-                        ${passed ? 'Continue assim!' : 'Você precisa acertar pelo menos 70% para ser aprovado. Estude o POP novamente e refaça o teste.'}
+                        ${passed ? 'Continue assim!' : `Você precisa acertar pelo menos ${test.passingScore||70}% para ser aprovado. Estude o POP novamente e refaça o teste.`}
                     </p>
                 </div>
 
